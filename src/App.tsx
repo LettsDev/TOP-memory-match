@@ -1,70 +1,15 @@
 import React, { useEffect, useState } from "react";
-
+import { DataResponse, Animal } from "./types";
 import "./App.css";
+import ImageComponent from "./components/imageComponent";
+import Card from "./components/cardComponent";
+import Header from "./components/header";
+import LoadingScreen from "./components/loadingScreen";
 const envVariables = process.env;
-interface DataResponse {
-  animals: [
-    {
-      id: number;
-      gender: string;
-      status: string;
-      url: string;
-      photos: [{ small: string; medium: string; large: string; full: string }];
-      published_at: string;
-      name: string;
-      description: string;
-      attributes: {
-        declawed: boolean | null;
-        house_trained: boolean;
-        shots_current: boolean;
-        spayed_neutered: boolean;
-        special_needs: boolean;
-      };
-      breeds: {
-        primary: string;
-        secondary: string | null;
-        mixed: boolean;
-        unknown: boolean;
-      };
-      environment: {
-        children: boolean | null;
-        dogs: boolean | null;
-        cats: boolean | null;
-      };
-    }
-  ];
-}
-interface Animal {
-  id: number;
-  gender: string;
-  status: string;
-  url: string;
-  photos: [{ small: string; medium: string; large: string; full: string }];
-  published_at: string;
-  name: string;
-  description: string;
-  attributes: {
-    declawed: boolean | null;
-    house_trained: boolean;
-    shots_current: boolean;
-    spayed_neutered: boolean;
-    special_needs: boolean;
-  };
-  breeds: {
-    primary: string;
-    secondary: string | null;
-    mixed: boolean;
-    unknown: boolean;
-  };
-  environment: {
-    children: boolean | null;
-    dogs: boolean | null;
-    cats: boolean | null;
-  };
-}
 
 function App() {
   const [animals, setAnimals] = useState<Animal[]>([]);
+  const [loading, setLoading] = useState(true);
   const { REACT_APP_API_KEY, REACT_APP_SECRET } = envVariables;
 
   function randomChoiceAnimals(
@@ -80,8 +25,8 @@ function App() {
     }
     return chosenPets;
   }
+
   useEffect(() => {
-    let didInit = false;
     const fetchToken = async () => {
       //call the API to generate a new token
 
@@ -120,31 +65,52 @@ function App() {
       return response.json();
     };
     async function loadData() {
-      if (!didInit) {
-        const token = await fetchToken();
-        const dogs: DataResponse = await fetchData(token, "Dog");
-        const cats: DataResponse = await fetchData(token, "Cat");
-        didInit = true;
-        const dogsWithPics: Animal[] = dogs.animals.filter((dog) => {
-          return dog.photos.length > 0;
-        });
-        const catsWithPics: Animal[] = cats.animals.filter((cat) => {
-          return cat.photos.length > 0;
-        });
-        //randomly choose 10 of each
-        const chosenAnimals = [
-          ...randomChoiceAnimals(dogsWithPics, 10),
-          ...randomChoiceAnimals(catsWithPics, 10),
-        ];
-        //randomly choose again to mix up
-        const mixedAnimals = randomChoiceAnimals(chosenAnimals, 20);
-        setAnimals(mixedAnimals);
-      }
+      const token = await fetchToken();
+      const dogs: DataResponse = await fetchData(token, "Dog");
+      const cats: DataResponse = await fetchData(token, "Cat");
+      const dogsWithPics: Animal[] = dogs.animals.filter((dog) => {
+        return dog.photos.length > 0;
+      });
+      const catsWithPics: Animal[] = cats.animals.filter((cat) => {
+        return cat.photos.length > 0;
+      });
+      //randomly choose 10 of each
+      const chosenAnimals = [
+        ...randomChoiceAnimals(dogsWithPics, 10),
+        ...randomChoiceAnimals(catsWithPics, 10),
+      ];
+      //randomly choose again to mix up
+      const mixedAnimals = randomChoiceAnimals(chosenAnimals, 20);
+      setAnimals(mixedAnimals);
+      setLoading(false);
     }
     loadData();
   }, []);
 
-  return <div className="App"></div>;
+  return (
+    <div className="App">
+      {loading ? (
+        <LoadingScreen />
+      ) : (
+        <>
+          <Header />
+          <div id="cards-container">
+            {animals.map((animal) => {
+              return (
+                <Card animalData={animal} key={`card-${animal.id.toString()}`}>
+                  <ImageComponent
+                    imgSource={animal.photos[0].medium}
+                    id={animal.id.toString()}
+                    key={animal.id.toString()}
+                  />
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default App;
