@@ -10,6 +10,10 @@ const envVariables = process.env;
 function App() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [score, setScore] = useState(0);
+  const [topScore, setTopScore] = useState(0);
+  const [idsPicked, setIdsPicked] = useState<string[]>([]);
+  const numberOfPets = 10;
   const { REACT_APP_API_KEY, REACT_APP_SECRET } = envVariables;
 
   function randomChoiceAnimals(
@@ -76,24 +80,46 @@ function App() {
       });
       //randomly choose 10 of each
       const chosenAnimals = [
-        ...randomChoiceAnimals(dogsWithPics, 10),
-        ...randomChoiceAnimals(catsWithPics, 10),
+        ...randomChoiceAnimals(dogsWithPics, 5),
+        ...randomChoiceAnimals(catsWithPics, 5),
       ];
       //randomly choose again to mix up
-      const mixedAnimals = randomChoiceAnimals(chosenAnimals, 20);
+      const mixedAnimals = randomChoiceAnimals(chosenAnimals, 10);
       setAnimals(mixedAnimals);
       setLoading(false);
     }
     loadData();
   }, []);
 
+  const handleClick = (ev: React.MouseEvent<HTMLImageElement>) => {
+    ev.preventDefault();
+    const petClicked = ev.target as HTMLImageElement;
+    const chosenPetId = petClicked.id;
+    if (idsPicked.includes(chosenPetId)) {
+      //already picked pet in round
+      setScore(0);
+      //might have to get new pets from pets already chosen
+      const juggled = randomChoiceAnimals(animals, numberOfPets);
+      setAnimals(juggled);
+      setIdsPicked([]);
+    } else {
+      //didn't pick pet yet
+      setScore(score + 1);
+      setIdsPicked([...idsPicked, chosenPetId]);
+      if (topScore < score) {
+        setTopScore(score);
+      }
+      const juggled = randomChoiceAnimals(animals, numberOfPets);
+      setAnimals(juggled);
+    }
+  };
   return (
     <div className="App">
       {loading ? (
         <LoadingScreen />
       ) : (
         <>
-          <Header />
+          <Header score={score} topScore={topScore} />
           <div id="cards-container">
             {animals.map((animal) => {
               return (
@@ -102,6 +128,9 @@ function App() {
                     imgSource={animal.photos[0].medium}
                     id={animal.id.toString()}
                     key={animal.id.toString()}
+                    handleClick={(ev: React.MouseEvent<HTMLImageElement>) =>
+                      handleClick(ev)
+                    }
                   />
                 </Card>
               );
